@@ -1,0 +1,539 @@
+package com.swfgui.controls
+{
+	import com.swfgui.core.BasicLayout;
+	import com.swfgui.core.ResizeMode;
+	import com.swfgui.core.UIComponent;
+	import com.swfgui.managers.ViewManager;
+	import com.swfgui.utils.display.Geom;
+	import com.swfgui.utils.display.LayoutConstraint;
+	import com.swfgui.utils.display.LayoutUtil;
+	
+	import flash.display.DisplayObject;
+	import flash.display.SimpleButton;
+	import flash.display.Sprite;
+	import flash.events.Event;
+	import flash.events.MouseEvent;
+	import flash.geom.Rectangle;
+	import flash.text.TextField;
+	import flash.text.TextFieldType;
+	import flash.text.TextFormat;
+	import flash.utils.Dictionary;
+
+	public class Button extends UIComponent
+	{
+		/**
+		 * 按钮鼠标手型的统一开关
+		 * @default
+		 */
+		public static const BUTTON_USE_HAND_CURSOR:Boolean = true;
+
+		//按钮的状态，同时也代表viewMC中对应的帧
+		protected const STATE_UP:int = 0;
+		protected const STATE_OVER:int = 1;
+		protected const STATE_DOWN:int = 2;
+		protected const STATE_DISABLED:int = 3;
+		
+		protected const LABEL_TEXT:String = "labelText";
+		protected const ICON_IMAGE:String = "iconImage";
+		protected const HIT_AREA:String = "hit_area";
+
+		private var _iconImage:Image;
+		private var _icon:String;
+		private var _labelText:TextField;
+		private var _label:String;
+		private var _color:int;
+
+		/**
+		 * 按钮的状态，有四种：up、over、down、disabled；ToggleButton又多出四种状态：
+		 * up_selected、over_selected、down_selected、disabled_selected。
+		 * 同时状态的值也代表viewMC中对应的帧。
+		 * @default 
+		 */
+		protected var state:int;
+
+		private var _clickSound:Object;
+		private var _enabled:Boolean = true;
+		private var _handCursor:Boolean = true;
+		
+		protected var children:Dictionary;
+		/**
+		 * 除labelText和iconImage以外，每帧的所有元件
+		 * @default 
+		 */
+		protected var framesChildren:Array;
+		/**
+		 * 每帧labelText的TextFormat
+		 * @default 
+		 */
+		protected var labelFormats:Array;
+
+		/**
+		 * 
+		 * @param view 通常是含有4帧(up,over,down,disabled)的MovieClip，
+		 * 也可以是SimpleButton等其它任何显示对象
+		 */
+		public function Button(viewSource:Object=null)
+		{
+			super(viewSource);
+		}
+		
+		override public function get className():String
+		{
+			return "Button";
+		}
+		
+		override public function dispose():void
+		{
+			if(hasDisposed)
+			{
+				return;
+			}
+			
+			view.removeEventListener(MouseEvent.CLICK, onSimpleButtonClk);
+			this.removeEventListener(MouseEvent.CLICK, onMouseClk);
+			removeListeners();
+			
+			super.dispose();
+		}
+
+		override protected function initialize():void
+		{
+			this.autoLayout = false;
+			children = new Dictionary(true);
+			framesChildren = [];
+			labelFormats = [];
+			
+			if(viewContainer)
+			{
+				//icon
+				var img:DisplayObject = viewContainer.getChildByName(ICON_IMAGE);
+				if(img)
+				{
+					_iconImage = new Image(img);
+				}
+				
+				//label
+				_labelText = viewContainer.getChildByName(LABEL_TEXT) as TextField;
+				if (_labelText)
+				{
+					_labelText.type = TextFieldType.DYNAMIC;
+					_labelText.selectable = false;
+					_color = _labelText.textColor;
+					children[_labelText] = new LayoutConstraint(NaN,NaN, _labelText.x, 
+						viewContainer.width  / viewContainer.scaleX- _labelText.x - _labelText.width, NaN, 
+						Math.round(_labelText.y + _labelText.height * 0.5 - 
+							viewContainer.height * 0.5 / viewContainer.scaleY));
+				}
+				
+				//hitArea
+				var area:Sprite = viewContainer.getChildByName(HIT_AREA) as Sprite;
+				if (area)
+				{
+					area.visible = false;
+					this.hitArea = area;
+					children[area] = new LayoutConstraint(
+						area.y, viewContainer.height - area.y - area.height, 
+						area.x, viewContainer.width - area.x - area.width);
+				}
+			}
+			
+			if(viewMC)
+			{
+				var n:int = viewMC.totalFrames;
+				for(var i:int = 0; i < n; i++)
+				{
+					viewMC.gotoAndStop(i + 1);
+					var child:DisplayObject = viewMC.getChildByName(LABEL_TEXT);
+					labelFormats.push(child is TextField ? TextField(child).defaultTextFormat : null);
+					
+					var fc:Array = [];
+					framesChildren.push(fc);
+					var m:int = viewMC.numChildren;
+					for(var j:int = 0; j < m; j++)
+					{
+						child = viewMC.getChildAt(j);
+						if(!(child.name == LABEL_TEXT && child is TextField) && 
+							child.name != SKIN && child.name != HIT_AREA)
+						{
+							fc.push(child);
+							if(!children[child])
+							{
+								children[child] = getDefaultLayout(child);
+							}
+						}
+					}
+				}
+				
+				viewMC.gotoAndStop(1);
+			}
+			
+			if(view is SimpleButton)
+			{
+				view.addEventListener(MouseEvent.CLICK, onSimpleButtonClk);
+			}
+			else
+			{
+				this.mouseChildren = false;
+			}
+			
+			
+			super.initialize();
+			state = STATE_UP;
+			super.setHandCursor(_handCursor);
+			this.addListeners();
+			this.addEventListener(MouseEvent.CLICK, onMouseClk);
+			this.updateState();//invalidateProperties();
+		}
+		
+		/**
+		 * 根据child的尺寸和相对于labelText的位置，自动猜测其布局
+		 * @param child
+		 * @return 
+		 */
+		protected function getDefaultLayout(child:DisplayObject):LayoutConstraint
+		{
+			var width:Number = child.parent.width / child.parent.scaleX;
+			var height:Number = child.parent.height / child.parent.scaleY;
+			var layout:LayoutConstraint = new LayoutConstraint();
+			
+			if(child.width > width * 0.8)
+			{
+				layout.left = child.x;
+				layout.right = width - child.x - child.width;
+			}
+			else
+			{
+				var halign:int = Geom.getHAlin(child);
+				if(halign == Geom.LEFT)
+				{
+					layout.left = Math.round(child.x);
+				}
+				else if(halign == Geom.RIGHT)
+				{
+					layout.right = Math.round(width - child.x - child.width);
+				}
+				else
+				{
+					layout.horizontalCenter = Math.round(child.x + child.width * 0.5 - width * 0.5);
+				}
+			}
+			
+			if(child.height > height * 0.8)
+			{
+				layout.top = child.y;
+				layout.bottom = height - child.y - child.height;
+			}
+			else
+			{
+				var valign:int = Geom.getVAlin(child);
+				if(valign == Geom.TOP)
+				{
+					layout.top = Math.round(child.y);
+				}
+				else if(valign == Geom.BOTTOM)
+				{
+					layout.bottom = Math.round(height - child.y - child.height);
+				}
+				else
+				{
+					layout.verticalCenter = Math.round(child.y + child.height * 0.5 - height * 0.5);
+				}
+			}
+			
+			return layout;
+		}
+		
+		override protected function updateSize():void
+		{
+			super.updateSize();
+			
+			if(resizeMode == ResizeMode.SCALE)
+			{
+				return;
+			}
+			
+//			if(hitArea)
+//			{
+//				hitArea.width += width - oldWidth;
+//				hitArea.height += height - oldHeight;
+//			}
+//			
+//			if(_labelText)
+//			{
+//				_labelText.width += width - oldWidth;
+//				_labelText.y += (height - oldHeight) * 0.5;
+//			}
+			
+			for(var child:* in children)
+			{
+				LayoutUtil.updateLayout(child as DisplayObject, this, children[child]);
+			}
+		}
+		
+		private function onMouseClk(event:MouseEvent):void
+		{
+			if(!_enabled)
+			{
+				//按钮不可用，为什么不直接禁用鼠标事件呢，而只阻断点击事件？，
+				//因为很多时候，按钮不可用，但又要求tooltip可用，比如显示“稍后开放”
+				event.stopImmediatePropagation();
+			}
+		}
+		
+		private function onSimpleButtonClk(event:Event):void
+		{
+			event.stopPropagation();
+			this.dispatchEvent(event);
+		}
+
+		/**
+		 * 按钮上显示的文字
+		 * @return
+		 */
+		public function get label():String
+		{
+			return _label;
+		}
+
+		public function set label(value:String):void
+		{
+			if (_label == value)
+			{
+				return;
+			}
+
+			_label = value;
+			
+			if(_labelText)
+			{
+				_labelText.text = value;
+			}			
+		}
+		
+		public function get color():int
+		{
+			return _color;
+		}
+		
+		public function set color(value:int):void
+		{
+			_color = value;
+			if(_labelText)
+			{
+				_labelText.textColor = _color;
+			}
+		}
+
+//		override public function set enabled(value:Boolean):void
+//		{
+//			if (_enabled == value)
+//			{
+//				return;
+//			}
+//			
+//			_enabled = value;
+//			
+//			if(view is SimpleButton)
+//			{
+//				(view as SimpleButton).enabled = value;
+//			}
+//			
+//			if(_enabled)
+//			{
+//				super.setHandCursor(_handCursor);
+//				this.addListeners();
+//				if(state == STATE_DISABLED)
+//				{
+//					state = STATE_UP;
+//				}
+//			}
+//			else
+//			{
+//				super.setHandCursor(false);
+//				this.removeListeners();
+//				state = STATE_DISABLED;
+//			}
+//			
+//			updateState();//invalidateProperties();
+//		}
+
+		/**
+		 * 按钮单击的音效，可以是声音文件路径，或者标识符
+		 * @return
+		 */
+		public function get clickSound():Object
+		{
+			return _clickSound;
+		}
+
+		public function set clickSound(value:Object):void
+		{
+			_clickSound = value;
+		}
+
+
+		private function addListeners():void
+		{
+			this.addEventListener(MouseEvent.MOUSE_DOWN, this.onMouseDown);
+			this.addEventListener(MouseEvent.MOUSE_UP, this.onMouseUp);
+			this.addEventListener(MouseEvent.ROLL_OVER, this.onMouseOver);
+			this.addEventListener(MouseEvent.ROLL_OUT, this.onMouseOut);
+		}
+
+		private function removeListeners():void
+		{
+			this.removeEventListener(MouseEvent.MOUSE_DOWN, this.onMouseDown);
+			this.removeEventListener(MouseEvent.MOUSE_UP, this.onMouseUp);
+			this.removeEventListener(MouseEvent.ROLL_OVER, this.onMouseOver);
+			this.removeEventListener(MouseEvent.ROLL_OUT, this.onMouseOut);
+		}
+
+		protected function onMouseDown(e:MouseEvent):void
+		{
+			state = STATE_DOWN;
+			updateState();//invalidateProperties();
+		}
+
+		protected function onMouseUp(e:MouseEvent):void
+		{
+			state = STATE_OVER;
+			updateState();//invalidateProperties();
+		}
+
+		protected function onMouseOver(e:MouseEvent):void
+		{
+			if (!BUTTON_USE_HAND_CURSOR)
+			{
+				super.setHandCursor(false);
+			}
+			
+			if (e.buttonDown)
+			{
+				if (state != STATE_DOWN)
+				{
+					state = STATE_DOWN;
+				}
+			}
+			else
+			{
+				if (state != STATE_OVER)
+				{
+					state = STATE_OVER;
+				}
+			}
+
+			updateState();//invalidateProperties();
+		}
+
+		protected function onMouseOut(e:MouseEvent):void
+		{
+			state = STATE_UP;
+			updateState();//invalidateProperties();
+		}
+
+		/**
+		 *
+		 * @param show
+		 */
+		override public function setHandCursor(show:Boolean=true):void
+		{
+			if(_handCursor != show)
+			{
+				_handCursor = show;
+				super.setHandCursor(BUTTON_USE_HAND_CURSOR ? show : false);
+			}
+		}
+		
+		override public function set width(value:Number):void
+		{
+			if(super.width != value)
+			{
+				super.width = value;
+				view.width = super.width;
+			}
+		}
+		
+		override public function set height(value:Number):void
+		{
+			if(super.height != value)
+			{
+				super.height = value;
+				view.height = super.height;
+			}
+		}
+
+		public function get icon():String
+		{
+			return _icon;
+		}
+
+		public function set icon(value:String):void
+		{
+			if(_icon != value)
+			{
+				_icon = value;
+				if(iconImage)
+				{
+					iconImage.source = value;
+				}
+			}
+		}
+
+		public function get labelText():TextField
+		{
+			return _labelText;
+		}
+
+		public function get iconImage():Image
+		{
+			return _iconImage;
+		}
+		
+		protected function updateState():void
+		{
+			if(framesChildren.length <= 1)
+			{
+				return;
+			}
+			
+			var frame:int = state;
+			
+			if(state == STATE_DISABLED)
+			{
+				frame = framesChildren.length <  STATE_DISABLED + 1 ? STATE_DOWN : STATE_DISABLED;
+			}
+			
+			gotoState(state);
+		}
+		
+		protected function gotoState(state:int):void
+		{
+			this.removeAllChild();
+			var fc:Array = framesChildren[state >= framesChildren.length ? 
+				framesChildren.length - 1 : state];
+			for each(var child:DisplayObject in fc)
+			{
+				this.addChild(child);
+			}
+			
+			if(hitArea)
+			{
+				this.addChild(hitArea);
+			}
+			
+			if(_iconImage)
+			{
+				this.addChild(_iconImage);
+			}
+			
+			if(_labelText)
+			{
+				if(labelFormats[state])
+				{
+					_labelText.setTextFormat(labelFormats[state]);
+				}
+				this.addChild(_labelText);
+			}
+		}
+	}
+}
