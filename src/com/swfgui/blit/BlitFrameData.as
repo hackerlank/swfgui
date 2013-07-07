@@ -35,6 +35,16 @@
 			this.bitmapData = bitmapData;
 			this.frameLabel = frameLabel;
 		}
+		
+		public function applyBitmap(bmp:Bitmap):void
+		{
+			if(bmp)
+			{
+				bmp.bitmapData = bitmapData;
+				bmp.x = x;
+				bmp.y = y;
+			}
+		}
 				
 		public function dispose():void
 		{

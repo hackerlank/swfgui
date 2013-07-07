@@ -34,7 +34,7 @@ package com.swfgui.utils.time
 		/**
 		 * 全局默认帧频
 		 */
-		public static var frameRate:Number = NaN;
+		public static var fps:Number = NaN;
 
 		/**
 		 * 最大两帧间隔（防止待机后返回卡死）

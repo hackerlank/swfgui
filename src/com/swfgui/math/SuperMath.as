@@ -110,5 +110,15 @@ package com.swfgui.math
 			var dy:Number = y2 - y1;
 			return Math.sqrt(dx * dx + dy * dy);
 		}
+		
+		/**
+		 * 随机一个bits位的数字
+		 * @param bits
+		 * @return 
+		 */
+		public static function randNumber(bits:int):Number
+		{
+			return Math.round(Math.random() * Math.pow(10, bits));
+		}
 	}
 }

@@ -4,7 +4,7 @@ package com.swfgui.blit
 	import com.swfgui.interfaces.IDisposable;
 	import com.swfgui.queue.MethodQueueElement;
 	import com.swfgui.utils.time.Tick;
-
+	
 	import flash.display.Bitmap;
 	import flash.display.DisplayObject;
 	import flash.display.DisplayObjectContainer;
@@ -12,7 +12,6 @@ package com.swfgui.blit
 	import flash.display.MovieClip;
 	import flash.display.Sprite;
 	import flash.events.Event;
-	import flash.geom.Rectangle;
 	import flash.utils.Dictionary;
 
 	[Event(name="PLAY_COMPLETE", type="game.lib.blit.BlitClipEvent")]
@@ -212,6 +211,7 @@ package com.swfgui.blit
 			if (source && pool.hasItem(source))
 			{
 				frames = pool.refrenceItem(source);
+				frameData = frames;
 			}
 			else
 			{
@@ -234,9 +234,14 @@ package com.swfgui.blit
 				mcCanvas.addChild(mc);
 
 				this.addEventListener(Event.ENTER_FRAME, onEnterFrame);
+				frameData = frames;
+				var bfd:BlitFrameData = drawMcToBitmap();
+				if(bfd)
+				{
+					bfd.applyBitmap(bitmap);
+				}
 			}
-
-			frameData = frames;
+			
 			this.addChild(bitmap);
 			play();
 		}
@@ -248,6 +253,11 @@ package com.swfgui.blit
 				this.removeFrameListener(Event.ENTER_FRAME, onEnterFrame);
 				return;
 			}
+			drawMcToBitmap();
+		}
+		
+		private function drawMcToBitmap():BlitFrameData
+		{
 			var curIndex:int = mc.currentFrame - 1;
 			if (curIndex >= 0 && curIndex < _frameData.length)
 			{
@@ -259,7 +269,10 @@ package com.swfgui.blit
 					bfd.x = newBfd.x;
 					bfd.y = newBfd.y;
 				}
+				return bfd;
 			}
+			
+			return null;
 		}
 
 		private function isDrawComplete(frameData:Vector.<BlitFrameData>):Boolean
@@ -540,9 +553,7 @@ package com.swfgui.blit
 			if (drawMc)
 			{
 				var bfd:BlitFrameData = _frameData[curIndex];
-				bitmap.bitmapData = bfd.bitmapData;
-				bitmap.x = bfd.x;
-				bitmap.y = bfd.y;
+				bfd.applyBitmap(bitmap);
 			}
 			else if (mc)
 			{

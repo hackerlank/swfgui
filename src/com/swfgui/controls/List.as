@@ -9,13 +9,12 @@ package com.swfgui.controls
 	import flash.events.MouseEvent;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
-	import flash.text.TextField;
 	import flash.utils.Dictionary;
-
+	
 	[Event(name="change", type="com.swfgui.events.ListEvent")]
 
 	/**
-	 * 常用的属性有：itemRendererClass、itemBindFunc、direction、maxRows、maxColumns等。
+	 * 常用的属性有：itemRendererClass、direction、maxRows、maxColumns等。
 	 * 容器被划分成横竖方向很多网格(tile)，每个tile上可以放置一个item，tile.width = item.width + hgap,
 	 * tile.height = item.height + vgap;
 	 *
@@ -107,13 +106,6 @@ package com.swfgui.controls
 		 */
 		protected var curRect:Rectangle = new Rectangle();
 
-
-		private var _btnPrePage:Button;
-		private var _btnNextPage:Button;
-		private var _btnFirstPage:Button;
-		private var _btnLastPage:Button;
-		private var _tfPage:TextField;
-
 		public function List(viewSource:Object=null)
 		{
 			super(viewSource);
@@ -136,27 +128,6 @@ package com.swfgui.controls
 
 		override protected function initialize():void
 		{
-			if (viewContainer.getChildByName("btnPrePage"))
-			{
-				btnPrePage = new Button(viewContainer.getChildByName("btnPrePage"));
-			}
-			if (viewContainer.getChildByName("btnNextPage"))
-			{
-				btnNextPage = new Button(viewContainer.getChildByName("btnNextPage"));
-			}
-			if (viewContainer.getChildByName("btnFirstPage"))
-			{
-				btnFirstPage = new Button(viewContainer.getChildByName("btnFirstPage"));
-			}
-			if (viewContainer.getChildByName("btnLastPage"))
-			{
-				btnLastPage = new Button(viewContainer.getChildByName("btnLastPage"));
-			}
-			if (viewContainer.getChildByName("tfPage"))
-			{
-				tfPage = viewContainer.getChildByName("tfPage") as TextField;
-			}
-
 			super.initialize();
 
 			this.autoLayout = false;
@@ -171,13 +142,13 @@ package com.swfgui.controls
 		override protected function updateProperties():void
 		{
 			super.updateProperties();
-
+			
 			//此判断很重要
-			if (!initItemsFlag)
+			if(!initItemsFlag)
 			{
 				return;
 			}
-
+			
 			initItems();
 
 			var len:int = getDataProviderLength();
@@ -185,8 +156,8 @@ package com.swfgui.controls
 			{
 				_rowCount = Math.ceil(len / maxColumns);
 				_columnCount = _rowCount > 1 ? maxColumns : len;
-
-				if (autoSize)
+				
+				if(autoSize)
 				{
 					this.height = contentHeight;
 				}
@@ -195,8 +166,8 @@ package com.swfgui.controls
 			{
 				_columnCount = Math.ceil(len / maxRows);
 				_rowCount = _columnCount > 1 ? maxRows : len;
-
-				if (autoSize)
+				
+				if(autoSize)
 				{
 					this.width = contentWidth;
 				}
@@ -204,7 +175,7 @@ package com.swfgui.controls
 
 			tileSize.width = itemWidth + horizontalGap;
 			tileSize.height = itemHeight + verticalGap;
-
+			
 			removeitems(curRect);
 			curRect.width = curRect.height = 0;
 		}
@@ -353,7 +324,7 @@ package com.swfgui.controls
 
 		protected function updateSelected():void
 		{
-			if (!dataProvider) // || !initItemsFlag)
+			if (!_dataProvider)// || !initItemsFlag)
 			{
 				return;
 			}
@@ -377,19 +348,19 @@ package com.swfgui.controls
 
 				return;
 			}
-
+			
 			var n:int;
 			var i:int;
 			var index:int;
 			var data:Object;
-
-			if (selectedChangeType == 1)
+			
+			if(selectedChangeType == 1)
 			{
 				n = _selectedDatas.length;
-				for (i = 0; i < n; i++)
+				for(i = 0; i < n; i++)
 				{
 					index = getDataIndex(_selectedDatas[i]);
-					if (index < 0)
+					if(index < 0)
 					{
 						//不是dataProvider中的数据，则删除
 						_selectedDatas.splice(i, 1);
@@ -402,13 +373,13 @@ package com.swfgui.controls
 					}
 				}
 			}
-			else if (selectedChangeType == 2)
+			else if(selectedChangeType == 2)
 			{
 				n = _selectedDataIndices.length;
-				for (i = 0; i < n; i++)
+				for(i = 0; i < n; i++)
 				{
-					data = dataProvider[_selectedDataIndices[i]];
-					if (data == null)
+					data = _dataProvider[_selectedDataIndices[i]];
+					if(data == null)
 					{
 						//不是dataProvider中的数据，则删除
 						_selectedDataIndices.splice(i, 1);
@@ -442,41 +413,41 @@ package com.swfgui.controls
 					}
 				}
 			}
-
-			if (selectedDataIndex != oldSelectedDataIndex && hasEventListener(ListEvent.CHANGE))
+			
+			if(selectedDataIndex != oldSelectedDataIndex && hasEventListener(ListEvent.CHANGE))
 			{
 				dispatchEvent(new ListEvent(ListEvent.CHANGE, selectedDataIndex, 
 					oldSelectedDataIndex, selectedItem, getItemByDataIndex(selectedDataIndex)));
 				oldSelectedDataIndex = selectedDataIndex;
 			}
 		}
-
+		
 		private function getItemByDataIndex(index:int):IListItemRenderer
 		{
 			var item:IListItemRenderer;
-			for each (var child:DisplayObject in getAllChild())
+			for each(var child:DisplayObject in getAllChild())
 			{
 				item = child as IListItemRenderer;
-				if (item && item.dataIndex == index)
+				if(item && item.dataIndex == index)
 				{
 					return item;
 				}
 			}
-
+			
 			return null;
 		}
 
 		protected function onItemMouseClick(event:MouseEvent):void
 		{
 			var index:int = IListItemRenderer(event.currentTarget).dataIndex;
-			if (!allowMultipleSelection)
+			if(!allowMultipleSelection)
 			{
 				selectedDataIndices.length = 0;
 				selectedDataIndex = index;
 				return;
 			}
-
-			if (ArrayUtil.hasItem(index, selectedDataIndices))
+			
+			if(ArrayUtil.hasItem(index, selectedDataIndices))
 			{
 				ArrayUtil.deleteItem(index, selectedDataIndices);
 			}
@@ -507,9 +478,6 @@ package com.swfgui.controls
 					dataPosition = horizontalScrollPosition;
 					_scrollRect.y = verticalScrollPosition;
 				}
-				dataPosition += currentPage * pageSize;
-				updatePageLabel();
-				updatePageButton();
 				this.scrollRect = _scrollRect;
 				updateScrollBarPosition();
 				refresh();
@@ -594,9 +562,9 @@ package com.swfgui.controls
 				}
 				curRect.height = screen.height;
 			}
-
+			
 			updateSelected();
-
+			
 			_items.length = 0;
 			for (var i:int = curRect.x; i < curRect.width; i++)
 			{
@@ -812,11 +780,11 @@ package com.swfgui.controls
 		 */
 		public function refresh():void
 		{
-			if (!dataProvider)
+			if (!_dataProvider)
 			{
 				return;
 			}
-
+			
 			var i:int;
 			var j:int;
 			var len:int;
@@ -836,26 +804,26 @@ package com.swfgui.controls
 				len = items.length;
 				for (i = 0; i < len; i++)
 				{
-					refreshItem(items[i], dataProvider[dataPosition + i], dataPosition + i);
+					refreshItem(items[i], _dataProvider[dataPosition + i], dataPosition + i);
 				}
 			}
 		}
 
 		protected function refreshIndex(i:int, j:int):void
 		{
-			if (!_dataProvider)
+			if(!_dataProvider)
 			{
 				return;
 			}
 			if (direction == DIR_VERTICAL)
 			{
 				refreshItem(curItems[i + ":" + j], 
-					dataProvider[j * columnCount + i], j * columnCount + i);
+					_dataProvider[j * columnCount + i], j * columnCount + i);
 			}
 			else
 			{
 				refreshItem(curItems[i + ":" + j], 
-					dataProvider[i * rowCount + j], i * rowCount + j);
+					_dataProvider[i * rowCount + j], i * rowCount + j);
 
 			}
 		}
@@ -873,7 +841,7 @@ package com.swfgui.controls
 			if (data != null)
 			{
 				item.visible = true;
-				if (itemBindFunc != null)
+				if(itemBindFunc != null)
 				{
 					itemBindFunc(item);
 				}
@@ -897,30 +865,30 @@ package com.swfgui.controls
 		override public function get contentWidth():Number
 		{
 			return autoItem ? columnCount * tileSize.width - verticalGap : 
-				Math.ceil(getDataProviderLength() / items.length);
+				Math.ceil(getDataProviderLength() /*/ items.length*/);
 		}
 
 		override public function get contentHeight():Number
 		{
 			return autoItem ? rowCount * tileSize.height - horizontalGap : 
-				Math.ceil(getDataProviderLength() / items.length);
+				Math.ceil(getDataProviderLength() /*/ items.length*/);
 		}
 
 		override public function get viewportWidth():Number
 		{
-			return autoItem ? super.viewportWidth : 1;
+			return autoItem ? super.viewportWidth : (direction == DIR_HORIZONTAL ? items.length : 1);
 		}
 
 		override public function get viewportHeight():Number
 		{
-			return autoItem ? super.viewportHeight : 1;
+			return autoItem ? super.viewportHeight : (direction == DIR_VERTICAL ? items.length : 1);
 		}
 
 		public function get dataProvider():Object
 		{
 			return _dataProvider;
 		}
-
+		
 		public function set dataProvider(value:Object):void
 		{
 			return setDataProvider(value);
@@ -939,18 +907,13 @@ package com.swfgui.controls
 			}
 			this.data = data;
 			_dataProvider = data;
-			_totlePage = Math.ceil(_dataProvider.length / pageSize);
 
 			if (resetScroll)
 			{
 				dataPosition = 0;
 				horizontalScrollPosition = 0;
 				verticalScrollPosition = 0;
-				_currentPage = -1;
 			}
-			var tmp:int = currentPage;
-			_currentPage = -2;
-			gotoPage(tmp);
 
 			invalidateProperties();
 			invalidateDisplayList();
@@ -959,34 +922,34 @@ package com.swfgui.controls
 
 		private function getDataProviderLength():int
 		{
-			if (dataProvider is Array || dataProvider is Vector)
+			if (_dataProvider is Array || _dataProvider is Vector)
 			{
-				return dataProvider["length"];
+				return _dataProvider["length"];
 			}
-			else if (dataProvider is XMLList)
+			else if (_dataProvider is XMLList)
 			{
-				return dataProvider["length"]();
+				return _dataProvider["length"]();
 			}
 
 			return 0;
 		}
-
+		
 		private function getDataIndex(data:Object):int
 		{
-			if (!dataProvider)
+			if(!_dataProvider)
 			{
 				return -1;
 			}
-
+			
 			var n:int = getDataProviderLength();
-			for (var i:int = 0; i < n; i++)
+			for(var i:int = 0; i < n; i++)
 			{
-				if (dataProvider[i] == data)
+				if(_dataProvider[i] == data)
 				{
 					return i;
 				}
 			}
-
+			
 			return -1;
 		}
 
@@ -1097,7 +1060,7 @@ package com.swfgui.controls
 		/**
 		 * 必须有一个类型为IListItemRenderer的参数，IListItemRenderer.data已经被赋值，
 		 * 用户可以根据data来绑定IListItemRenderer的内容
-		 * @return
+		 * @return 
 		 */
 		public function get itemBindFunc():Function
 		{
@@ -1253,196 +1216,5 @@ package com.swfgui.controls
 		{
 			return _selectedItems;
 		}
-
-		//--------------------------------------------------------------------------
-		//
-		//  page
-		//
-		//--------------------------------------------------------------------------
-
-		private var _currentPage:int;
-		private var _totlePage:int;
-		private var _pageSize:int;
-
-		public function nextPage():void
-		{
-			gotoPage(currentPage + 1);
-		}
-
-		public function prePage():void
-		{
-			gotoPage(currentPage - 1);
-		}
-
-		public function firstPage():void
-		{
-			gotoPage(0);
-		}
-
-		public function lastPage():void
-		{
-			gotoPage(totlePage - 1);
-		}
-
-		public function gotoPage(page:int):void
-		{
-			if (page == currentPage)
-			{
-				return;
-			}
-
-			if (page < 0)
-			{
-				page = 0;
-			}
-
-			if (page >= totlePage)
-			{
-				page = totlePage - 1;
-			}
-
-			_currentPage = page;
-			invalidateScrollPostion();
-		}
-
-		private function updatePageButton():void
-		{
-			if (_btnPrePage)
-			{
-				_btnPrePage.enabled = (currentPage > 0);
-			}
-
-			if (_btnNextPage)
-			{
-				_btnNextPage.enabled = (currentPage < totlePage - 1);
-			}
-			
-			if (_btnFirstPage)
-			{
-				_btnFirstPage.enabled = (currentPage > 0);
-			}
-			
-			if (_btnLastPage)
-			{
-				_btnLastPage.enabled = (currentPage < totlePage - 1);
-			}
-		}
-
-		private function updatePageLabel():void
-		{
-			if (_tfPage)
-			{
-				if(totlePage > 0)
-				{
-					_tfPage.text = (currentPage + 1).toString() + "/" + totlePage.toString();
-				}
-				else
-				{
-					_tfPage.text = "0/0";
-				}
-			}
-		}
-		
-		private function onBtnPageClick(e:MouseEvent):void
-		{
-			switch (e.currentTarget)
-			{
-				case btnPrePage:
-					prePage();
-					break;
-				case btnNextPage:
-					nextPage();
-					break;
-				case btnFirstPage:
-					firstPage();
-					break;
-				case btnLastPage:
-					lastPage();
-					break;
-			}
-		}
-
-		public function get btnPrePage():Button
-		{
-			return _btnPrePage;
-		}
-
-		public function set btnPrePage(value:Button):void
-		{
-			_btnPrePage = value;
-			_btnPrePage.enabled = false;
-			_btnPrePage.addEventListener(MouseEvent.CLICK, onBtnPageClick);
-		}
-
-		public function get btnNextPage():Button
-		{
-			return _btnNextPage;
-		}
-
-		public function set btnNextPage(value:Button):void
-		{
-			_btnNextPage = value;
-			_btnNextPage.enabled = false;
-			_btnNextPage.addEventListener(MouseEvent.CLICK, onBtnPageClick);
-		}
-
-		public function get btnFirstPage():Button
-		{
-			return _btnFirstPage;
-		}
-
-		public function set btnFirstPage(value:Button):void
-		{
-			_btnFirstPage = value;
-			_btnFirstPage.enabled = false;
-			_btnFirstPage.addEventListener(MouseEvent.CLICK, onBtnPageClick);
-		}
-
-		public function get btnLastPage():Button
-		{
-			return _btnLastPage;
-		}
-
-		public function set btnLastPage(value:Button):void
-		{
-			_btnLastPage = value;
-			_btnLastPage.enabled = false;
-			_btnLastPage.addEventListener(MouseEvent.CLICK, onBtnPageClick);
-		}
-
-		/**
-		 * 页码标签
-		 */
-		public function get tfPage():TextField
-		{
-			return _tfPage;
-		}
-
-		public function set tfPage(value:TextField):void
-		{
-			_tfPage = value;
-		}
-
-		public function get currentPage():int
-		{
-			return _currentPage;
-		}
-
-		public function get totlePage():int
-		{
-			return _totlePage;
-		}
-
-		public function get pageSize():int
-		{
-			return _pageSize;
-		}
-
-		public function set pageSize(value:int):void
-		{
-			_pageSize = value;
-		}
-
-
 	}
 }

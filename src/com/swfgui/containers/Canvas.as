@@ -200,7 +200,9 @@ package com.swfgui.containers
 			{
 				//用this作getBounds的参数时， new MovieClip()的x、y很大
 				var child:DisplayObject = this.getChildAt(i);
+				//在发行版本中，这句话居然会导致堆栈溢出
 				var rect:Rectangle = child.getBounds(child);
+				//var rect:Rectangle = new Rectangle(0, 0, child.width, child.height);
 				if (rect.right + child.x > maxWidth)
 				{
 					maxWidth = rect.right + child.x;

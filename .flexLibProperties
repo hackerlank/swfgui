@@ -3,6 +3,7 @@
   <includeClasses>
     <classEntry path="com.swfgui.events.CloseEvent"/>
     <classEntry path="com.swfgui.utils.time.Tick"/>
+    <classEntry path="com.swfgui.controls.NumbericLabel"/>
   </includeClasses>
   <includeResources/>
   <namespaceManifests/>

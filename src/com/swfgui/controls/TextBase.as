@@ -374,5 +374,14 @@ package com.swfgui.controls
 			viewText.autoSize = _autoSize ? TextFieldAutoSize.LEFT : TextFieldAutoSize.NONE;
 			invalidateSize();
 		}
+		
+		override public function invalidateSize():void
+		{
+			if(autoSize)
+			{
+				validateSize();
+			}
+		}
+				
 	}
 }

@@ -154,6 +154,22 @@ package com.swfgui.core
 
 			this.removeEventListener(Event.ADDED_TO_STAGE, onAddToStage);
 			this.removeEventListener(Event.REMOVED_FROM_STAGE, onRemoveFromStage);
+			
+			_viewSource = null;
+			_view = null;
+			toolTip = null;
+			toolTipHandler = null;
+			_data = null;
+			userData = null;
+			
+			while($numChildren > 0)
+			{
+				var child:IDisposable = $removeChildAt(0) as IDisposable;
+				if(child)
+				{
+					child.dispose();
+				}
+			}
 
 			_hasDisposed = true;
 		}
@@ -856,8 +872,8 @@ package com.swfgui.core
 
 			if (!isNaN(value))
 			{
-				_left = NaN;
-				_right = NaN;
+				_top = NaN;
+				_bottom = NaN;
 			}
 			invalidateSize();
 		}
@@ -878,8 +894,8 @@ package com.swfgui.core
 
 			if (!isNaN(value))
 			{
-				_top = NaN;
-				_bottom = NaN;
+				_left = NaN;
+				_right = NaN;
 			}
 			invalidateSize();
 		}
